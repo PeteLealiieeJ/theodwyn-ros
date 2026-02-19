@@ -1,0 +1,7 @@
+eowyn:
+  joymapping_node:
+    ros__parameters:
+      chassis_max_linspeed    : 1.0
+      chassis_max_angspeed    : 1.0
+      pantilt_maxspeed        : 1.0
+      settings_update_waitime : 0.5

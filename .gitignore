@@ -49,3 +49,15 @@ qtcreator-*
 
 # Catkin custom files
 CATKIN_IGNORE
+
+# Temp
+*_tmp*
+*_ret*
+.vscode
+ret/
+
+install/
+build/
+log/
+
+*.csv

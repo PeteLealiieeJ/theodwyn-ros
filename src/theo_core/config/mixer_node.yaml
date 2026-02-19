@@ -1,0 +1,11 @@
+eowyn:
+  mixer_node:
+    ros__parameters:
+      r_wheel   : 0.075
+      lx        : 0.165
+      ly        : 0.11
+      omega_ref : 17.224737
+      flipdir_0 : true
+      flipdir_1 : false
+      flipdir_2 : false
+      flipdir_3 : true

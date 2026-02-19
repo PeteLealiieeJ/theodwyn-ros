@@ -1,0 +1,5 @@
+/eowyn/external:
+  trajectory_transmitter_node:
+    ros__parameters:
+      delay_time: 5.
+    

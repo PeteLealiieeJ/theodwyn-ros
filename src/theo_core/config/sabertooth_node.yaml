@@ -1,0 +1,6 @@
+eowyn:
+  sabertooth_node:
+    ros__parameters:
+      portname_0    : "/dev/ttyTHS1"
+      portname_1    : "/dev/ttyTHS3"
+      baudrate      : 9600

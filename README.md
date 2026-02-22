@@ -148,6 +148,10 @@ source install/setup.bash                       # ONLY needs to be run once per 
 ```bash
 ros2 launch theo_core autoop_drive.launch       # configurations may need to be changed in case of unexpected behavior
 ```
+
+> [!WARNING]
+> The user profile on the *Theodwyn* robot is required to be a member of the following user groups for onboard communications during robot operations: `dialout`, `gpio`, `i2c`, `tty`
+
 #### (1b) Starting Trajectory Transmission from External Computer
 The external machine/computer will spin up the transmission and vicon receiver nodes, external to the *Theodwyn* Robot. After sourcing the `install/setup.bash`, say, in the current directory, the user has a csv file named `csv_out.csv`. The following can be used to transmit the trajectory, assuming the *Theodwyn* Robot and external machine are on the same local network.
 ```bash

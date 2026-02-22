@@ -23,6 +23,8 @@ class PCA9685:
     freq            : int = 100000
     i2c_bus         : busio.I2C 
     channels        : int 
+    active_channels : int 
+    address         : int
     servokit        : Optional[ServoKit] = None
     init_cmd        : Optional[List[float]]
     actuation_range : Optional[List[float]]
@@ -33,75 +35,87 @@ class PCA9685:
         self,
         SDA             : int,
         SCL             : int,
+        active_channels : int,
         channels        : int = 16, 
+        address         : int = 0x40,
         init_cmd        : Optional[List[float]] = None,
         actuation_range : Optional[List[float]] = None,
         min_max_pwr     : Optional[List[Tuple[int,int]]] = None,
-        safety_bounds   : Optional[List[Optional[Tuple[float,float]]]] = None,
+        safety_bounds   : Optional[List[Optional[Tuple[float,float]]]] = None
     ):
-        self.channels        = channels,
-        self.SDA             = SDA,
-        self.SCL             = SCL,
-        self.init_cmd        = init_cmd,
-        self.actuation_range = actuation_range,
-        self.min_max_pwr     = min_max_pwr,
-        self.safety_bounds   = safety_bounds,    
+        self.channels        = channels
+        self.active_channels = active_channels
+        self.SDA             = SDA
+        self.SCL             = SCL
+        self.address         = address
+        self.init_cmd        = init_cmd
+        self.actuation_range = actuation_range
+        self.min_max_pwr     = min_max_pwr
+        self.safety_bounds   = safety_bounds
+        if len(safety_bounds) < active_channels:
+            self.safety_bounds = self.safety_bounds + (active_channels-len(safety_bounds)) * [None]
     
 
     def connect( self ):
         # Connection
         self.i2c_bus = busio.I2C( scl=self.SCL, sda=self.SDA, frequency=self.freq )
-        self.servokit = ServoKit( channels = self.channels , i2c = self.i2c_bus )
+        self.servokit = ServoKit( channels = self.channels , i2c = self.i2c_bus, address = self.address )
         if self.actuation_range is not None:
             for i, actuation_range_i in enumerate(self.actuation_range):
                 self.servokit.servo[i].actuation_range = actuation_range_i
         if self.min_max_pwr is not None:
             for i, min_max_i in enumerate(self.min_max_pwr):
                 self.servokit.servo[i].set_pulse_width_range(min_pulse=min_max_i[0],max_pulse=min_max_i[1])
-        self.send( self.channels*[0.] ) if self.init_cmd is None else self.send( self.init_cmd )
+        self.send( self.active_channels*[0.] ) if self.init_cmd is None else self.send( self.init_cmd )
 
 
     def disconnect( self ):
         # Disconnection
-        self.send( self.channels*[0.] ) if self.init_cmd is None else self.send( self.init_cmd )
+        self.send( self.active_channels*[0.] ) if self.init_cmd is None else self.send( self.init_cmd )
         self.i2c_bus.deinit()
 
-    
-    def _check_safe( 
+
+    def get_angles( self ): 
+        if self.servokit is None : 
+            raise RuntimeError('Connection to IIC has not been established')
+        return [ self.servokit.servo[i].angle for i in range(self.active_channels) ] 
+
+        
+    def get_safe_cmd( 
         self,
-        safety_bound : Optional[Tuple[float,float]], 
-        cmd : float
-    ) -> None:
+        cmd : float,
+        safety_bound : Optional[Tuple[float,float]]
+    ) -> float:
         """
         Checks whether fulfilling a given command will violate saftey contraints
         """
         if safety_bound is not None:
-            if cmd < safety_bound[0] or cmd > safety_bound[1]:
-                raise ValueError('Angle is out of prescribed safety bound')
-        return
+            if cmd < safety_bound[0]:
+                return safety_bound[0]
+            elif cmd > safety_bound[1]:
+                return safety_bound[1]
+        return cmd
     
 
     def send(
         self, 
-        cmd : List[float], 
-        **kwargs
-    ) -> Tuple[bool,str]:
+        cmd : List[float]
+    ) -> None:
         """
         Send command through network
         :param cmd: Command to be sent
         """
 
-        if self.servokit is None : raise RuntimeError('Connection to IIC has not been established')
+        if self.servokit is None : 
+            raise RuntimeError('Connection to IIC has not been established')
 
-
+        safe_cmds = len(cmd) * [None]
         for i, cmd_i in enumerate( cmd ):
-            try:
-                if self.safety_bounds is not None: 
-                    self._check_safe( 
-                        safety_bound=self.safety_bounds[i], 
-                        cmd=cmd_i 
-                    )
-                self.servokit.servo[i].angle = cmd_i
-            except ValueError as e:
-                return False, e
-            return True, ""
+            safe_cmds[i] 		 = self.get_safe_cmd( cmd_i, self.safety_bounds[i] )
+            self.servokit.servo[i].angle = safe_cmds[i]
+            
+        return safe_cmds
+            
+            
+            
+            

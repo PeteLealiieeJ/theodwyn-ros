@@ -7,7 +7,7 @@ mode_(TeleopMode::On)
 {
     this -> declare_parameter<double>( "chassis_max_linspeed", 1.0 );
     this -> declare_parameter<double>( "chassis_max_angspeed", 1.0 );
-    this -> declare_parameter<double>( "pantilt_maxspeed", 1.0 );
+    this -> declare_parameter<double>( "pantilt_maxspeed", 1.57 );
     this -> declare_parameter<double>( "settings_update_waitime", 0.5 );
 
     this -> get_parameter( 
@@ -56,8 +56,8 @@ mode_(TeleopMode::On)
         10
     );
     // Pantilt Subscriber
-    this -> pantilt_publisher_ = this -> create_publisher<theo_msgs::msg::TheoServoState>(
-        "ptcmd_topic", 
+    this -> pantilt_publisher_ = this -> create_publisher<theo_msgs::msg::TheoServoCmd>(
+        "servocmd_topic", 
         10
     );
 
@@ -112,7 +112,7 @@ void JoyMapping::mappingCallback(
     
 
     geometry_msgs::msg::Twist      chassis_msg_out;
-    theo_msgs::msg::TheoServoState pantilt_msg_out;
+    theo_msgs::msg::TheoServoCmd   pantilt_msg_out;
 
     // // -> Chassis Movements
     // Left Stick for Chassis Translation
@@ -123,8 +123,8 @@ void JoyMapping::mappingCallback(
 
     // // // -> Pantilt Movements
     // // Right Stick
-    // pantilt_msg_out.tilt_angle = 
-    // pantilt_msg_out.pan_angle  =
+    pantilt_msg_out.pan_vel  = this -> pantilt_maxspeed * axes[2];
+    pantilt_msg_out.tilt_vel = this -> pantilt_maxspeed * axes[3];
     
 
     // // Settings Changes

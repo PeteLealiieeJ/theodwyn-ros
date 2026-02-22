@@ -30,7 +30,8 @@ find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/TheoFrameState.msg"
-  "msg/TheoServoState.msg"
+  "msg/TheoServoAddition.msg"
+  "msg/TheoServoCmd.msg"
   "msg/TheoMechanumCmd.msg"
   "msg/TheoCode.msg"
   "msg/TheoWaypoint.msg"

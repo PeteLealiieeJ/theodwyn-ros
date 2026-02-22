@@ -1,0 +1,13 @@
+eowyn:
+  servo_handler_node:
+    ros__parameters:
+      address               : 0x41
+      channels              : 16
+      pan_init_cmd          : 135
+      tilt_init_cmd         : 90
+      pan_actuation_range   : 270
+      tilt_actuation_range  : 180
+      pan_min_max_pwr       : [500,2500]
+      tilt_min_max_pwr      : [500,2500]
+      pan_safety_bounds     : [10,260]
+      tilt_safety_bounds    : [10,170]

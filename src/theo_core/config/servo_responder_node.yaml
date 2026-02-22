@@ -1,0 +1,4 @@
+eowyn:
+  servo_responder_node:
+    ros__parameters:
+      update_timeout : 0.1

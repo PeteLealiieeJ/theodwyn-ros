@@ -56,11 +56,11 @@ install(TARGETS
 # Install Python modules
 ament_python_install_package( ${PROJECT_NAME} )
 
-# Install Python executables
-install(PROGRAMS
-  scripts/pantilt_node.py
-  DESTINATION lib/${PROJECT_NAME}
-)
+# # Install Python executables
+# install(PROGRAMS
+#   scripts/pantilt_node.py
+#   DESTINATION lib/${PROJECT_NAME}
+# )
 
 # Install launch and config directories
 install(DIRECTORY

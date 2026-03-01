@@ -78,17 +78,29 @@ Each of the provided packages has respective configuration files, which may be u
 | `flipdir_2`   | bool  | `false` | flip direction of wheel 2 in mixer |
 | `flipdir_3`   | bool  | `false` | flip direction of wheel 3 in mixer |
 
-
-#### Parameters for `pantilt_node`
+#### Parameters for `servo_handler_node`
 
 | Parameter            | Type     | Default           | Description |
 |---|---:|---|---|
-| `pca_channels`    | int       | `None` | Channels in PCA9685                              |
-| `init_cmd`        | list[2]   | `None` | Initial command to servos at spin-up             |
-| `actuation_range` | list[2]   | `None` | Servo range of actuation                         |
-| `pca_min_max_pwr` | list[2]   | `None` | Min/Max pulse widths of the respective servos    |
-| `safety_bounds`   | list[2]   | `None` | Safety bounds of servos                          |
+| `address`             | int     | `0x40`        | PCA9685 address on I2C bus associated with the `board.SCL_1` and `board.SDA_1` pins (see warning below)  |
+| `channels`            | int     | `16`          | PCA9685 channels |
+| `pan_init_cmd`        | float   | `0`           | initial command for pan servo sent during spin-up and spin-down |
+| `tilt_init_cmd`       | float   | `0`           | initial command for tilt servo sent during spin-up and spin-down |
+| `pan_actuation_range` | list[2] | `270`         | actuation range of pan servo        |
+| `tilt_actuation_range`| list[2] | `180`         | actuation range of tilt servo       |
+| `pan_min_max_pwr`     | list[2] | `[500,2500]`  | min and max PWM power of pan servo  |
+| `tilt_min_max_pwr`    | list[2] | `[500,2500]`  | min and max PWM power of tilt servo |
+| `pan_safety_bounds`   | list[2] | `[0,270]`     | safe actuation range of pan servo   |
+| `tilt_safety_bounds`  | list[2] | `[0,180]`     | safe actuation range of tilt servo  |
 
+> [!WARNING]
+> For the `address` parameter, notice the provided package specifies the address on the I2C bus associated with the `board.SCL_1` and `board.SDA_1` pins. If a user wants to change the associated pins for the I2C bus, they must navigate to `theo_core/scripts/servo_handler_node.py` and change the pins used to construct the `servo_driver` member within the `ServoHandlerNode`'s constructor. The authors are open and would be thankful for contributions that allow a user to change this requirement within the configuration file associated with the node.
+
+#### Parameters for `servo_responder_node`
+
+| Parameter            | Type     | Default           | Description |
+|---|---:|---|---|
+| `update_timeout` | float | `0.1` | time (in seconds) to carry over previous servo velocity commands before dropping to zero velocities  |
 
 #### Parameters for `sabertooth_node`
 

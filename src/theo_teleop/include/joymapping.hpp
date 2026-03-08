@@ -2,7 +2,7 @@
 #include "std_msgs/msg/bool.hpp"
 #include "sensor_msgs/msg/joy.hpp"
 #include "geometry_msgs/msg/twist.hpp"
-#include "theo_msgs/msg/theo_servo_state.hpp"
+#include "theo_msgs/msg/theo_servo_cmd.hpp"
 #include <vector>
 #include <cstdint>
 
@@ -29,5 +29,5 @@ class JoyMapping : public rclcpp::Node {
         rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_subscription_;
         rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr authority_subscription_;
         rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr chassis_publisher_;
-        rclcpp::Publisher<theo_msgs::msg::TheoServoState>::SharedPtr pantilt_publisher_;
+        rclcpp::Publisher<theo_msgs::msg::TheoServoCmd>::SharedPtr pantilt_publisher_;
 };

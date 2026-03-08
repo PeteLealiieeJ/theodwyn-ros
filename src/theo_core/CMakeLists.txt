@@ -45,22 +45,26 @@ ament_target_dependencies(mixer_node rclcpp Eigen3 theo_msgs geometry_msgs)
 add_executable(sabertooth_node src/sabertooth.cpp)
 ament_target_dependencies(sabertooth_node rclcpp Boost theo_msgs)
 
+add_executable(servo_responder_node src/servo_responder.cpp)
+ament_target_dependencies(servo_responder_node rclcpp theo_msgs)
+
 
 # Install Cpp executables
 install(TARGETS
   mixer_node
   sabertooth_node
+  servo_responder_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
 # Install Python modules
 ament_python_install_package( ${PROJECT_NAME} )
 
-# # Install Python executables
-# install(PROGRAMS
-#   scripts/pantilt_node.py
-#   DESTINATION lib/${PROJECT_NAME}
-# )
+# Install Python executables
+install(PROGRAMS
+  scripts/servo_handler_node.py
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 # Install launch and config directories
 install(DIRECTORY

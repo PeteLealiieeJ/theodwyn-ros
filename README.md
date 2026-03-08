@@ -78,17 +78,29 @@ Each of the provided packages has respective configuration files, which may be u
 | `flipdir_2`   | bool  | `false` | flip direction of wheel 2 in mixer |
 | `flipdir_3`   | bool  | `false` | flip direction of wheel 3 in mixer |
 
-
-#### Parameters for `pantilt_node`
+#### Parameters for `servo_handler_node`
 
 | Parameter            | Type     | Default           | Description |
 |---|---:|---|---|
-| `pca_channels`    | int       | `None` | Channels in PCA9685                              |
-| `init_cmd`        | list[2]   | `None` | Initial command to servos at spin-up             |
-| `actuation_range` | list[2]   | `None` | Servo range of actuation                         |
-| `pca_min_max_pwr` | list[2]   | `None` | Min/Max pulse widths of the respective servos    |
-| `safety_bounds`   | list[2]   | `None` | Safety bounds of servos                          |
+| `address`             | int     | `0x40`        | PCA9685 address on I2C bus associated with the `board.SCL_1` and `board.SDA_1` pins (see warning below)  |
+| `channels`            | int     | `16`          | PCA9685 channels |
+| `pan_init_cmd`        | float   | `0`           | initial command for pan servo sent during spin-up and spin-down |
+| `tilt_init_cmd`       | float   | `0`           | initial command for tilt servo sent during spin-up and spin-down |
+| `pan_actuation_range` | list[2] | `270`         | actuation range of pan servo        |
+| `tilt_actuation_range`| list[2] | `180`         | actuation range of tilt servo       |
+| `pan_min_max_pwr`     | list[2] | `[500,2500]`  | min and max PWM power of pan servo  |
+| `tilt_min_max_pwr`    | list[2] | `[500,2500]`  | min and max PWM power of tilt servo |
+| `pan_safety_bounds`   | list[2] | `[0,270]`     | safe actuation range of pan servo   |
+| `tilt_safety_bounds`  | list[2] | `[0,180]`     | safe actuation range of tilt servo  |
 
+> [!WARNING]
+> For the `address` parameter, notice the provided package specifies the address on the I2C bus associated with the `board.SCL_1` and `board.SDA_1` pins. If a user wants to change the associated pins for the I2C bus, they must navigate to `theo_core/scripts/servo_handler_node.py` and change the pins used to construct the `servo_driver` member within the `ServoHandlerNode`'s constructor. The authors are open and would be thankful for contributions that allow a user to change this requirement within the configuration file associated with the node.
+
+#### Parameters for `servo_responder_node`
+
+| Parameter            | Type     | Default           | Description |
+|---|---:|---|---|
+| `update_timeout` | float | `0.1` | time (in seconds) to carry over previous servo velocity commands before dropping to zero velocities  |
 
 #### Parameters for `sabertooth_node`
 
@@ -117,15 +129,18 @@ Each of the provided packages has respective configuration files, which may be u
 
 | Parameter            | Type     | Default           | Description |
 |---|---:|---|---|
-| `p_linear_gain`                   | float | `0`     | proporational gain for translational controller   |
-| `i_linear_gain`                   | float | `0`     | proporational gain for translational controller   |
-| `d_linear_gain`                   | float | `0`     | proporational gain for translational controller    |
-| `p_angular_gain`                  | float | `0`     | proporational gain for translational controller   |
-| `i_angular_gain`                  | float | `0`     | proporational gain for translational controller   |
-| `d_angular_gain`                  | float | `0`     | proporational gain for translational controller    |
-| `proximity_met_range_meters`      | float | `0.05`  | proximity range error to confirm configuration in meters    |
-| `proximity_met_direction_degrees` | float | `5`     | proximity direction error to confirm configuration in degrees  |
-
+| `p_linear_gain`                   | float   | `0`        | proporational gain for translational controller             |
+| `i_linear_gain`                   | float   | `0`        | integral gain for translational controller                  |
+| `d_linear_gain`                   | float   | `0`        | derivative gain for translational controller                |
+| `p_angular_gain`                  | float   | `0`        | proporational gain for angular controller                   |
+| `i_angular_gain`                  | float   | `0`        | integral gain for angular controller                        |
+| `d_angular_gain`                  | float   | `0`        | derivative gain for angular controller                      |
+| `p_servo_gain`                    | float   | `0`        | proporational gain for servo controller                     |
+| `i_servo_gain`                    | float   | `0`        | integral gain for servo controller                          |
+| `d_servo_gain`                    | float   | `0`        | derivative gain for servo controller                        |
+| `proximity_met_range_meters`      | float   | `0.05`     | proximity range error to confirm configuration in meters    |
+| `proximity_met_direction_degrees` | float   | `5`        | proximity direction error to confirm configuration in degrees (representative for both chassis and pan-tilt errors, respectively) |
+| `rpy_degrees_C0_C`                | list[3] | `[0,0,0]`  | roll-pitch-yaw angles, in degrees, describing the *active* rotation from the *chassis* frame to the *servo* frame  |
 ### theo_comm
 
 #### Parameters for `trajectory_transmitter_node`
@@ -140,6 +155,41 @@ Each of the provided packages has respective configuration files, which may be u
 
 ## Execution
 ### Transmitting CSV Trajectory from External Machine to a *Theodwyn* Robot
+A CSV of trajectory waypoints may be broadcasted from an external machine to the *theodwyn* robotic system. However, it is required to follow a specific column-data organization for the broadcast functionality included in this repository. To broadcast a trajectory for the *Theodwyn* robot chassis (soley), the CSV data must be organized as the following, 
+
+| Column | Type  | Desciption  |
+|---|---:|---|
+|  `0`  |  float  | time of the waypoint described by the following column fields in seconds                                            |
+|  `1`  |  float  | x position, reference to the *world* frame origin, represented in the *world* frame in meters                       |
+|  `2`  |  float  | y position, reference to the *world* frame origin, represented in the *world* frame in meters                       |
+|  `3`  |  float  | z position, reference to the *world* frame origin, represented in the *world* frame in meters                       |
+|  `4`  |  float  | w scalar part of the quarternion describing the *active* rotation from the *world* to *chassis* frame               |
+|  `5`  |  float  | x in vector part of the quarternion describing the *active* rotation from the *world* frame to *chassis* frame      |
+|  `6`  |  float  | y in vector part of the quarternion describing the *active* rotation from the *world* frame to *chassis* frame      |
+|  `7`  |  float  | z in vector part of the quarternion describing the *active* rotation from the *world* frame to *chassis* frame      |
+|  `8`  |  float  | x velocity, as interpreted by a *world* observer, represented in the *world* frame in meters per seconds            |
+|  `9`  |  float  | y velocity, as interpreted by a *world* observer, represented in the *world* frame in meters per seconds            |
+| `10`  |  float  | z velocity, as interpreted by a *world* observer, represented in the *world* frame in meters per seconds            |
+| `11`  |  float  | x angular velocity, as interpreted by a *world* observer, represented in the *chassis* frame in radians per seconds |
+| `12`  |  float  | y angular velocity, as interpreted by a *world* observer, represented in the *chassis* frame in radians per seconds |
+| `13`  |  float  | z angular velocity, as interpreted by a *world* observer, represented in the *chassis* frame in radians per seconds |
+
+> [!NOTE]
+> Although aspects of each of the 6-DOF of motion must be described within the CSV, the *Theodwyn* robot chassis are naturally restricted to locally planar motion. Thus, at the moment, in many cases, the controller will ignore the data provided in some of the broadcasted fields. Although this is the case, we maintain their requrement to enable potential expansions to the *Theodwyn* robotic systems that may be introduced at a later date.
+
+
+To broadcast a trajectory for the pan-tilt system, the following fields must be included, in addition to the previous 14 fields for the chassis waypoints, and will be instantiated with respect to the time in column `0`,
+
+| Column  | Type  | Desciption  |
+|---|---:|---|
+| `14` |  float  | pan angle, reference to the *servo* frame, in radians                                |
+| `15` |  float  | tilt angle, reference to the *servo* frame, in radians                               |
+| `16` |  float  | pan angular velocity, as interpreted by a *chassis* observer, in radians per second  |
+| `17` |  float  | tilt angular velocity, as interpreted by a *chassis* observer, in radians per second |
+
+> [!NOTE]
+> Users are permitted to include or exclude a header within the transmitted CSV at their leisure. This is because the default exception behavior is to skip CSV lines with unexpected/erroronous data.
+
 #### (1a) Starting Autonomous and Tele-Operation Nodes Onboard *Theodwyn* Robot
 The robot must, at some point prior to operations, spin up its ROS nodes onboard. The following in the top-level directory, regardless of when and how it is executed, will do so
 ```bash
@@ -148,6 +198,10 @@ source install/setup.bash                       # ONLY needs to be run once per 
 ```bash
 ros2 launch theo_core autoop_drive.launch       # configurations may need to be changed in case of unexpected behavior
 ```
+
+> [!WARNING]
+> The user profile on the *Theodwyn* robot is required to be a member of the following user groups for onboard communications during robot operations: `dialout`, `gpio`, `i2c`, `tty`
+
 #### (1b) Starting Trajectory Transmission from External Computer
 The external machine/computer will spin up the transmission and vicon receiver nodes, external to the *Theodwyn* Robot. After sourcing the `install/setup.bash`, say, in the current directory, the user has a csv file named `csv_out.csv`. The following can be used to transmit the trajectory, assuming the *Theodwyn* Robot and external machine are on the same local network.
 ```bash

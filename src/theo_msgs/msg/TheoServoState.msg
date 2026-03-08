@@ -1,2 +1,2 @@
-float64 pan_angle
-float64 tilt_angle
+theo_msgs/TheoServoAddition     angle
+theo_msgs/TheoServoCmd          vel

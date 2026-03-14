@@ -1,27 +1,39 @@
 from launch import LaunchDescription
-from launch_ros.actions import Node
-from launch.actions import ExecuteProcess
+from launch.actions import ExecuteProcess, IncludeLaunchDescription
+from launch.substitutions import PathJoinSubstitution
+from launch_ros.substitutions import FindPackageShare
+
 
 def generate_launch_description():
-    ld = LaunchDescription()
-
-    ros2bager = ExecuteProcess(
-        cmd=[
-            "ros2", "bag", "record",
-            "--start-paused",
-            "--all"        
-        ],
-        cwd="/mnt/usb/bags",
-        output="screen"
-    )
     
-    reorder_node=Node(
-        namespace   = 'eowyn',
-        package     = 'theo_recorder',
-        executable  = 'recorder_node',
+    launch_dir = PathJoinSubstitution(
+        [
+            FindPackageShare('theo_recorder'), 
+            'launch'
+        ]
     )
 
-    ld.add_action(ros2bager)
-    ld.add_action(reorder_node)
+    #  1. Launch ROS bag
+    #  2. Launch Recorder Node and underlying Interfaces
 
-    return ld
+    return LaunchDescription([
+        ExecuteProcess(
+            cmd     =   [
+                "ros2", 
+                "bag", 
+                "record",
+                "--start-paused",
+                "-a"
+            ],
+            cwd     =   "/mnt/usb/",
+            output  =   "screen",
+        ),
+        IncludeLaunchDescription(
+            PathJoinSubstitution(
+                [
+                    launch_dir, 
+                    'recorder_node.launch.py'
+                ]
+            )
+        )
+    ])

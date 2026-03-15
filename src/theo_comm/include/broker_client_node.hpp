@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <cstdint>
 #include "rclcpp/rclcpp.hpp"
 #include "broker_ids.hpp"
 #include "broker_statuses.hpp"
@@ -67,8 +68,8 @@ void BrokerClientNode::send_broker_request_(
 ){
     // Setup brokerage request
     auto request    = std::make_shared<theo_srvs::srv::TheoBrokerExchange::Request>();
-    request -> code = static_cast<int>( code );
-    request -> id   = static_cast<int>( this -> broker_id_ );
+    request -> code = static_cast<int8_t>( code );
+    request -> id   = static_cast<int8_t>( this -> broker_id_ );
 
     // Wait for service if it's unavailable
     while( 

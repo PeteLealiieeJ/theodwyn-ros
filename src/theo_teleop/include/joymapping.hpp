@@ -1,3 +1,5 @@
+#pragma once
+
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/bool.hpp"
 #include "sensor_msgs/msg/joy.hpp"
@@ -6,7 +8,7 @@
 #include <vector>
 #include <cstdint>
 
-enum class TeleopMode : int {
+enum class TeleopMode : int8_t {
     On,
     Off
 };

@@ -1,3 +1,5 @@
+#pragma once
+
 #include <map>
 #include "rclcpp/rclcpp.hpp"
 #include "broker_statuses.hpp"

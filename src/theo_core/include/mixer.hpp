@@ -1,3 +1,5 @@
+#pragma once
+
 #include <Eigen/Dense>
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/twist.hpp"

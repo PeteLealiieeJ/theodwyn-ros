@@ -120,19 +120,19 @@ void BrokerNode::broker_exchange(
     {
         case BroadcastBrokerCodes::Confirm :
         {
-            RCLCPP_INFO( rclcpp::get_logger("rclcpp"), "Broker received transition confirmation code from [ID:%ld]", request -> id );
+            RCLCPP_INFO( rclcpp::get_logger("rclcpp"), "Broker received transition confirmation code from [ID:%d]", request -> id );
             approval = this -> broker_transition( static_cast<BroadcastBrokerId>(request -> id) ); // = this->brokerstatus_next[ this->status ]
             break;
         }   
         case BroadcastBrokerCodes::Reset :
         {
-            RCLCPP_INFO( rclcpp::get_logger("rclcpp"), "Broker received reset request code from [ID:%ld]", request -> id );
+            RCLCPP_INFO( rclcpp::get_logger("rclcpp"), "Broker received reset request code from [ID:%d]", request -> id );
             approval = this -> broker_reset(); // = this->brokerstatus_reset[ this->status ]
             break;
         }
         case BroadcastBrokerCodes::Check :
         {
-            RCLCPP_INFO( rclcpp::get_logger("rclcpp"), "Broker received status check request code from [ID:%ld]", request -> id );
+            RCLCPP_INFO( rclcpp::get_logger("rclcpp"), "Broker received status check request code from [ID:%d]", request -> id );
             approval = true;
             break;
         }
@@ -141,13 +141,13 @@ void BrokerNode::broker_exchange(
     }
     // Send approve and (maybe updated) status to requested party
     response -> approval    = approval;
-    response -> code        = static_cast<int>( this -> get_broker_status() );
+    response -> code        = static_cast<int8_t>( this -> get_broker_status() );
 };
 
 
 theo_msgs::msg::TheoCode BrokerNode::get_broker_message(){
     theo_msgs::msg::TheoCode msg_out;
-    msg_out.code = static_cast<int>( this -> get_broker_status() );
+    msg_out.code = static_cast<int8_t>( this -> get_broker_status() );
     return msg_out;
 };
 

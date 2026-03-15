@@ -1,5 +1,5 @@
-int64 code
-int64 id
+int8 code
+int8 id
 ---
-int64 code
+int8 code
 bool approval

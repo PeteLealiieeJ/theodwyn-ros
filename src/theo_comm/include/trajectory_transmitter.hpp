@@ -1,3 +1,5 @@
+#pragma once
+
 #include <vector>
 #include <iostream>
 #include <fstream>
@@ -11,7 +13,7 @@
 #include "theo_msgs/msg/theo_waypoint.hpp"
 #include "broker_client_node.hpp"
 
-enum class TransmitterMode : int {
+enum class TransmitterMode : int8_t {
     Standby,
     Idle,
     BroadcastConfiguration,

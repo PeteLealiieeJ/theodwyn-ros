@@ -141,7 +141,7 @@ void PIDControllerNode::change_teleop_authority_to( bool mode ){
 
 
 void PIDControllerNode::switch_mode_( ControllerMode mode_in ){
-    this -> unwind_accumulated_errors();
+    this -> reset_signal_errors_();
     switch (mode_in)
     {
     case ControllerMode::Idle:

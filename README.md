@@ -48,6 +48,9 @@ In the top-level directory of this repository
 ```bash
 colcon build --packages-select theo_msgs theo_srvs theo_comm theo_core theo_teleop theo_autoop
 ```
+> [!WARNING]
+> An additional package, `theo_recorder` is provided in this repository; However, the services it depends upon requires a ROS2 version higher than *Jazzy*. All other packages provided in this repository were originally developed and tested using ROS2 *Humble*. To build the aforementioned package, include `theo_recorder` in the packages selected above.
+
 ```bash
 colcon build --packages-select vicon_receiver --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 ```
@@ -150,6 +153,10 @@ Each of the provided packages has respective configuration files, which may be u
 | `filename`                        | string | `""`    | File path to input CSV file   |
 | `delay_time`                      | float  | `0`     | Delay time to start transmitting trajectory after request/configuratoin confirmation   |
 
+### theo_recorder
+> [!WARNING]
+> The `recorder.launch.py` file, provided in the `theo_recorder` package, will automatically spin up a `rosbag2` instance, recording on all available topics and outputting to the `/mnt/usb` directory. There is no builtin functionality to change this configuration; However, the `recorder_node.launch.py` file is provided to spin up just the recorder, such that a `rosbag2` instance may be spun up by the user aside the provided functionality.
+
 
 ---
 
@@ -196,7 +203,7 @@ The robot must, at some point prior to operations, spin up its ROS nodes onboard
 source install/setup.bash                       # ONLY needs to be run once per shell session
 ```
 ```bash
-ros2 launch theo_core autoop_drive.launch       # configurations may need to be changed in case of unexpected behavior
+ros2 launch theo_core autoop_drive_servo.launch       # configurations may need to be changed in case of unexpected behavior
 ```
 
 > [!WARNING]

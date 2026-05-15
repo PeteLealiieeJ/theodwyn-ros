@@ -9,6 +9,7 @@
 #include <chrono>
 #include <thread>
 #include <memory>
+#include <filesystem>
 #include "rclcpp/rclcpp.hpp"
 #include "theo_msgs/msg/theo_waypoint.hpp"
 #include "broker_client_node.hpp"
@@ -37,12 +38,17 @@ class TrajectoryTransmitterNode :  public BrokerClientNode {
     private:
 
         // CSV File Handling M&M
-        std::string file_name;
+        std::vector<std::string> source_vec;
+        std::vector<std::string>::iterator source_vec_iterator;
+        bool loop_source;
         std::ifstream file_handle;
         size_t N_time_chassis_fields_;
         size_t N_time_chassis_servo_fields_;
         theo_msgs::msg::TheoWaypoint::SharedPtr initial_msg_ptr;
-        void reset_file_handle();
+        void collect_source_files_names( std::string );
+        void reset_source_iterator();
+        void reset_file_handle( std::string );
+        bool next_file_handle();
         TransmitterParsedData parse_next_( double );
         void write_parsed2msg( TransmitterParsedData, theo_msgs::msg::TheoWaypoint&  );
 

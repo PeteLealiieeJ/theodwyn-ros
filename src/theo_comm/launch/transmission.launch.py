@@ -9,23 +9,23 @@ def generate_launch_description():
     ld = LaunchDescription()
 
     file_path_arg = DeclareLaunchArgument(
-        'transmit_file_path',
+        'source_path',
         default_value=TextSubstitution(text=""), # Optional: set a default value or leave empty
         description='Full path to the transmission csv'
     )
-    file_path = LaunchConfiguration('transmit_file_path')
+    file_path = LaunchConfiguration('source_path')
 
     transmitter_config = os.path.join(
         get_package_share_directory('theo_comm'),
         'config',
         'transmitter_node.yaml'
     )
-        
+
     node=Node(
         namespace   = '/eowyn/external',
         package     = 'theo_comm',
         executable  = 'transmitter_node',
-        parameters  = [transmitter_config,{'filename':file_path}]
+        parameters  = [transmitter_config,{'source_path':file_path}]
     )
 
     ld.add_action(file_path_arg)

@@ -11,24 +11,93 @@ TrajectoryTransmitterNode::TrajectoryTransmitterNode()
     N_time_chassis_servo_fields_(14+4),
     mode_(TransmitterMode::Standby)
 {
+    std::string source;
     // setup ros parameters and file handle
-    this -> declare_parameter<std::string>( "filename", "" );
+    this -> declare_parameter<std::string>( "source_path", "" );
     this -> declare_parameter<double>( "delay_time", 0. );
-    this -> get_parameter( "filename", this -> file_name );
+    this -> declare_parameter<bool>( "loop_source", false );
+    this -> get_parameter( "source_path", source );
     this -> get_parameter( "delay_time", this -> delay_time_seconds );
-    this -> reset_file_handle();
+    this -> get_parameter( "loop_source", this -> loop_source );
+    this -> collect_source_files_names( source );
+    this -> reset_source_iterator();
 
-    // Pull initial waypoint
+    // setup service/publishers/subscribers
+    this -> publisher_  = this -> create_publisher<theo_msgs::msg::TheoWaypoint>("trajectory_transmission", 10);
+    this -> send_broker_request_( BroadcastBrokerCodes::Check  );
+};
+
+
+
+// -------------------------------------------------------------------------------------------------------------
+// CSV File Handling
+// -------------------------------------------------------------------------------------------------------------
+
+void TrajectoryTransmitterNode::collect_source_files_names( std::string source ){
+    // shutdown node if destination just doesn't exist
+    if( ! std::filesystem::exists(source) ){
+        RCLCPP_ERROR(
+            rclcpp::get_logger("rclcpp"), "Failed to find specified source: [%s] ... Shutting Down",
+            ( source ).c_str()
+        );
+        rclcpp::shutdown();
+    }
+    
+    this -> source_vec.clear();
+    if(  
+        std::filesystem::is_regular_file(source) 
+     && std::filesystem::path( source ).extension() == ".csv"  
+    ){
+        // --> check if source is csv
+        // make singleton vector to match downstream functionality
+        this -> source_vec.push_back( std::filesystem::path( source ).string() );
+    }
+    else if( std::filesystem::is_directory(source) ){
+        // --> check if source is folder
+        // iterate through folder, check extension, and add to vector
+        for( const std::filesystem::directory_entry& file_i : std::filesystem::directory_iterator(source) ){
+            if(  
+                file_i.is_regular_file()
+             && file_i.path().extension() == ".csv"  
+            ){
+                this -> source_vec.push_back( file_i.path().string() );
+            }
+        }
+    }
+
+    if( this -> source_vec.empty() ){
+        RCLCPP_ERROR(
+            rclcpp::get_logger("rclcpp"), "Specified source was neither a CSV nor Folder containing CSVs: [%s] ... Shutting Down",
+            ( source ).c_str()
+        );
+        rclcpp::shutdown();
+    };
+
+}
+
+
+void TrajectoryTransmitterNode::reset_source_iterator(){
+    this -> source_vec_iterator = this -> source_vec.begin();
+    this -> reset_file_handle( *( this -> source_vec_iterator ) );
+}
+
+
+void TrajectoryTransmitterNode::reset_file_handle( std::string file_name ){
+    // Close file handler and open new
+    this -> file_handle.close();
+    this -> file_handle = std::ifstream( file_name );
+
+    // Record configuration point 
     TransmitterParsedData initial_data = this -> parse_next_( 0. );
     if( !initial_data.succeeded ){ 
         RCLCPP_ERROR(
             rclcpp::get_logger("rclcpp"), "Failed to Parse File: [%s] ... Shutting Down",
-            ( this -> file_name ).c_str()
+            ( file_name ).c_str()
         );
         rclcpp::shutdown();
     }
     else{
-        RCLCPP_INFO( rclcpp::get_logger("rclcpp"), "Parsing: [%s]", ( this -> file_name ).c_str() );
+        RCLCPP_INFO( rclcpp::get_logger("rclcpp"), "Parsing: [%s]", ( file_name ).c_str() );
         this -> initial_msg_ptr = std::make_shared<theo_msgs::msg::TheoWaypoint>();
         this -> initial_msg_ptr -> chassis_state.pose.position.x    = initial_data.data[1];
         this -> initial_msg_ptr -> chassis_state.pose.position.y    = initial_data.data[2];
@@ -54,22 +123,21 @@ TrajectoryTransmitterNode::TrajectoryTransmitterNode()
         }
         else this -> initial_msg_ptr -> servo_enabled = false;
     }
-    this -> reset_file_handle();
 
-    // setup service/publishers/subscribers
-    this -> publisher_  = this -> create_publisher<theo_msgs::msg::TheoWaypoint>("trajectory_transmission", 10);
-    this -> send_broker_request_( BroadcastBrokerCodes::Check  );
-};
-
-
-
-// -------------------------------------------------------------------------------------------------------------
-// CSV File Handling
-// -------------------------------------------------------------------------------------------------------------
-
-void TrajectoryTransmitterNode::reset_file_handle(){
+    // close file handler again and open new 
+    // TODO: I dont like that this happens twice but it will be addressed in a future pr
     this -> file_handle.close();
-    this -> file_handle = std::ifstream( this -> file_name );
+    this -> file_handle = std::ifstream( file_name );
+}
+
+
+bool TrajectoryTransmitterNode::next_file_handle(){
+    ++( this -> source_vec_iterator );
+    if( this -> source_vec_iterator != this -> source_vec.end() ){
+        this -> reset_file_handle( *( this -> source_vec_iterator ) );
+        return true;
+    }
+    return false;
 }
 
 
@@ -170,7 +238,6 @@ void TrajectoryTransmitterNode::write_parsed2msg(
 };
 
 
-
 // -------------------------------------------------------------------------------------------------------------
 // Trajectory Broadcast
 // -------------------------------------------------------------------------------------------------------------
@@ -216,6 +283,11 @@ void TrajectoryTransmitterNode::codeCallback(
 {
     switch (  static_cast<BroadcastBrokerStatus>(msg -> code) )
     {
+        case BroadcastBrokerStatus::Idle : 
+        {
+            break;
+        }
+
         case BroadcastBrokerStatus::Broadcasting_Configuration :
         {
             // --> start configuration broadcast
@@ -238,7 +310,6 @@ void TrajectoryTransmitterNode::codeCallback(
         {
             // --> stop all broadcast / spindown node
             this -> switch_mode_( TransmitterMode::SpinDown );
-            this -> reset_file_handle();
             break;
         }
     }
@@ -299,8 +370,19 @@ void TrajectoryTransmitterNode::timerCallback(){
             
             TransmitterParsedData data_next = parse_next_( target_time_seconds );
 
-            if( !data_next.succeeded ){
-                this -> switch_mode_( TransmitterMode::SpinDown );
+            if( !data_next.succeeded ){ 
+                if( this->next_file_handle() ){
+                    // prepare to broadcast next csv
+                    this -> switch_mode_( TransmitterMode::Standby );
+                }
+                else if( this->loop_source ){
+                    this -> reset_source_iterator();
+                    this -> switch_mode_( TransmitterMode::Standby );
+                }
+                else{
+                    // no csv's left spin down
+                    this -> switch_mode_( TransmitterMode::SpinDown );
+                }
                 this -> send_broker_request_(  BroadcastBrokerCodes::Reset );
                 break;
             }

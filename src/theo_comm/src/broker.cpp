@@ -45,10 +45,6 @@ BrokerNode::BrokerNode()
             {
                 BroadcastBrokerStatus::Broadcasting_Trajectory, 
                 BroadcastBrokerStatus::Idle
-            },
-            {
-                BroadcastBrokerStatus::Broadcasting_Trajectory, 
-                BroadcastBrokerStatus::Idle
             }
         }
     )

@@ -154,8 +154,9 @@ Each of the provided packages has respective configuration files, which may be u
 
 | Parameter            | Type     | Default           | Description |
 |---|---:|---|---|
-| `filename`                        | string | `""`    | File path to input CSV file   |
-| `delay_time`                      | float  | `0`     | Delay time to start transmitting trajectory after request/configuratoin confirmation   |
+| `source_path`                     | string | `""`    | path to input CSV file or folder of CSVs   |
+| `delay_time`                      | float  | `0`     | delay time to start transmitting trajectory after request/configuration confirmation   |
+| `loop_source`                     | bool   | `false` | loops specified broadcast target. repeats input CSV file or cycles folder of CSVs |
 
 ### theo_recorder
 > [!WARNING]
@@ -216,8 +217,8 @@ ros2 launch theo_core autoop_drive_servo.launch       # configurations may need 
 #### (1b) Starting Trajectory Transmission from External Computer
 The external machine/computer will spin up the transmission and vicon receiver nodes, external to the *Theodwyn* Robot. After sourcing the `install/setup.bash`, say, in the current directory, the user has a csv file named `csv_out.csv`. The following can be used to transmit the trajectory, assuming the *Theodwyn* Robot and external machine are on the same local network.
 ```bash
-CSV_FILE=$(realpath "csv_out.csv")
+CSV_FILE_OR_FOLDER=$(realpath "csv_out.csv")
 ```
 ```bash
-ros2 launch theo_comm transmit_trajectory.launch.py transmit_file_path:=$CSV_FILE
+ros2 launch theo_comm transmit_trajectory.launch.py source_path:=$CSV_FILE_OR_FOLDER
 ```

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef THEODWYNROS_THEOCORE_SABERTOOTH_
+#define THEODWYNROS_THEOCORE_SABERTOOTH_
 
 #include <boost/asio.hpp>
 #include <cstdint>
@@ -9,69 +10,67 @@
 #include "rclcpp/rclcpp.hpp"
 #include "theo_msgs/msg/theo_mechanum_cmd.hpp"
 
+class SimpleSerialWriter
+{
 
-class SimpleSerialWriter{
+public:
+    boost::asio::io_service &io_srvc;
+    boost::asio::serial_port serial;
 
-    public:
-        boost::asio::io_service&    io_srvc;
-        boost::asio::serial_port    serial;
+    SimpleSerialWriter(boost::asio::io_service &);
+    ~SimpleSerialWriter();
+    int configureSerial(const std::string &, unsigned int);
+    int writeSerialUI8(uint8_t &);
+    bool is_open();
+    void close();
 
-        SimpleSerialWriter( boost::asio::io_service&  );
-        ~SimpleSerialWriter();
-        int configureSerial( const std::string&, unsigned int);
-        int writeSerialUI8( uint8_t& );
-        bool is_open();
-        void close();
-
-    private:
-        void _configureSerial( const std::string& portname, unsigned int baudrate );
-
+private:
+    void _configureSerial(const std::string &portname, unsigned int baudrate);
 };
 
+class SingleSabertooth
+{
 
-class SingleSabertooth{
+public:
+    boost::asio::io_service &io_srvc;
+    SimpleSerialWriter serial_writer;
 
-    public:
-        boost::asio::io_service&    io_srvc;
-        SimpleSerialWriter          serial_writer;
+    SingleSabertooth(boost::asio::io_service &, const std::string &, unsigned int);
+    void sendThrottles(double, double);
 
-        SingleSabertooth( boost::asio::io_service&, const std::string&, unsigned int );
-        void sendThrottles( double&, double& );
-
-    private:
-       
-        uint8_t _convertThrottle_0( double& );
-        uint8_t _convertThrottle_1( double& );
-        
+private:
+    uint8_t _convertThrottle_0(double) const;
+    uint8_t _convertThrottle_1(double) const;
 };
 
+class DualSabertooth
+{
 
-class DualSabertooth{
+public:
+    boost::asio::io_service &io_srvc;
+    SingleSabertooth saber_0;
+    SingleSabertooth saber_1;
 
-    public:
-        boost::asio::io_service&    io_srvc;
-        SingleSabertooth            saber_0;
-        SingleSabertooth            saber_1;
-
-        DualSabertooth( boost::asio::io_service&, const std::string&, const std::string&, unsigned int );
-        void sendThrottles( double&, double&, double&, double& );
-
+    DualSabertooth(boost::asio::io_service &, const std::string &, const std::string &, unsigned int);
+    void sendThrottles(double, double, double, double);
 };
 
+class SabertoothSubscriber : public rclcpp::Node
+{
 
-class SabertoothSubscriber : public rclcpp::Node {
-    
-    public:
-        boost::asio::io_service&    io_srvc;
-        std::string                 portname_0;
-        std::string                 portname_1;
-        int32_t                     baudrate;
+public:
+    boost::asio::io_service &io_srvc;
+    std::string portname_0;
+    std::string portname_1;
+    int32_t baudrate;
 
-        SabertoothSubscriber( boost::asio::io_service& );
+    SabertoothSubscriber(boost::asio::io_service &);
 
-    private:
-        std::unique_ptr<DualSabertooth> sabertooth_ptr;
-        rclcpp::Subscription<theo_msgs::msg::TheoMechanumCmd>::SharedPtr subscription_;
+private:
+    std::unique_ptr<DualSabertooth> sabertooth_ptr;
+    rclcpp::Subscription<theo_msgs::msg::TheoMechanumCmd>::SharedPtr subscription_;
 
-        void serialCallback( const theo_msgs::msg::TheoMechanumCmd::SharedPtr ) const;
+    void serialCallback(const theo_msgs::msg::TheoMechanumCmd::SharedPtr) const;
 };
+
+#endif

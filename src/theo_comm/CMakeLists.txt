@@ -33,12 +33,41 @@ endif()
 
 include_directories(include)
 
+# add shared libary
+add_library(theo_comm_lib SHARED 
+    src/broker_client_node.cpp 
+)
+set_target_properties(
+  theo_comm_lib
+  PROPERTIES VERSION "${theo_comm_VERSION}"
+)
+target_link_libraries(
+  theo_comm_lib 
+  rclcpp::rclcpp
+  ${theo_msgs_TARGETS}
+  ${theo_srvs_TARGETS}
+)
+install(
+  TARGETS theo_comm_lib
+  EXPORT export_theo_comm_lib
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES
+  DESTINATION include/
+)
+ament_export_targets(export_theo_comm_lib HAS_LIBRARY_TARGET)
+ament_export_dependencies(rclcpp theo_msgs theo_srvs)
+
 # Create Cpp executable
 add_executable(broker_node src/broker.cpp)
 ament_target_dependencies(broker_node rclcpp theo_msgs theo_srvs)
 
 add_executable(transmitter_node src/trajectory_transmitter.cpp)
-ament_target_dependencies(transmitter_node rclcpp Boost theo_msgs theo_srvs )
+target_link_libraries(transmitter_node 
+  theo_comm_lib
+  Boost::boost 
+)
 
 # Install Cpp executables
 install(TARGETS

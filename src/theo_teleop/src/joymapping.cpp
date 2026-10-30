@@ -10,6 +10,7 @@ JoyMapping::JoyMapping()
     declare_parameter<double>("pantilt_maxspeed", DEFAULT_pantilt_maxspeed_);
     declare_parameter<double>("settings_update_waitime", DEFAULT_settings_update_waitime_);
     declare_parameter<bool>("speed_locked", DEFAULT_speed_locked_);
+    declare_parameter<double>("timeout", DEFAULT_timeout_);
     declare_parameter<std::string>("joy_topic", std::string(DEFAULT_joy_topic_));
     declare_parameter<std::string>("joy_authority_topic", std::string(DEFAULT_joyauthority_topic_));
     declare_parameter<std::string>("vel_cmd_topic", std::string(DEFAULT_velcmd_topic_));
@@ -21,6 +22,7 @@ JoyMapping::JoyMapping()
     get_parameter("pantilt_maxspeed", pantilt_maxspeed_);
     get_parameter("settings_update_waitime", settings_update_waitime_);
     get_parameter("speed_locked", speed_locked_);
+    get_parameter("timeout", timeout_);
     std::string joy_topic, joy_authority_topic, vel_cmd_topic, servo_cmd_topic;
     get_parameter("joy_topic", joy_topic);
     get_parameter("joy_authority_topic", joy_authority_topic);
@@ -57,6 +59,11 @@ JoyMapping::JoyMapping()
     pantilt_publisher_ = create_publisher<theo_msgs::msg::TheoServoCmd>(
         servo_cmd_topic,
         10);
+
+    timer_ = create_wall_timer(
+        std::chrono::milliseconds(100),
+        std::bind(&JoyMapping::timerCallback, this));
+    last_joy_time_ = get_clock()->now();
 };
 
 void JoyMapping::mappingCallback(
@@ -108,17 +115,46 @@ void JoyMapping::mappingCallback(
     geometry_msgs::msg::Twist chassis_msg_out;
     theo_msgs::msg::TheoServoCmd pantilt_msg_out;
 
-    // // -> Chassis Movements
-    // Left Stick for Chassis Translation
-    chassis_msg_out.linear.x = chassis_max_linspeed_ * axes[1];
-    chassis_msg_out.linear.y = chassis_max_linspeed_ * axes[0];
-    // Bumpers for Angular Velocity
-    chassis_msg_out.angular.z = chassis_max_angspeed_ * double(buttons[6] - buttons[7]);
+    double axes_0 = axes[0];
+    double axes_1 = axes[1];
+    double axes_2 = axes[2];
+    double axes_3 = axes[3];
+    /*
+        NOTE:   The following variables and their associated conditionals resolve an issue where
+                the controller driver reports extreme axes values on connection/disconnection.
+                Fortunately, it reports impossible values and can be caught by looking at the
+                values on the respective horizontal and vertical axes.
+        WARNING:    If the triggers are ever bound to a command, this idea may need to be extended there.
+    */
+    bool lstick_nconf = (std::abs(axes_0) > stick_conf_thresh_) && (std::abs(axes_1) > stick_conf_thresh_);
+    bool rstick_nconf = (std::abs(axes_2) > stick_conf_thresh_) && (std::abs(axes_3) > stick_conf_thresh_);
 
-    // // // -> Pantilt Movements
-    // // Right Stick
-    pantilt_msg_out.pan_vel = pantilt_maxspeed_ * axes[2];
-    pantilt_msg_out.tilt_vel = pantilt_maxspeed_ * axes[3];
+    // // -> Chassis Movements (Left Stick)
+    if (lstick_nconf)
+    {
+        chassis_msg_out.linear.x = 0.;
+        chassis_msg_out.linear.y = 0.;
+        chassis_msg_out.angular.z = 0.;
+    }
+    else
+    {
+        chassis_msg_out.linear.x = chassis_max_linspeed_ * axes_1;
+        chassis_msg_out.linear.y = chassis_max_linspeed_ * axes_0;
+        // Bumpers for Angular Velocity
+        chassis_msg_out.angular.z = chassis_max_angspeed_ * double(buttons[6] - buttons[7]);
+    }
+
+    // // // -> Pantilt Movements (Right Stick)
+    if (rstick_nconf)
+    {
+        pantilt_msg_out.pan_vel = 0.;
+        pantilt_msg_out.tilt_vel = 0.;
+    }
+    else
+    {
+        pantilt_msg_out.pan_vel = pantilt_maxspeed_ * axes_2;
+        pantilt_msg_out.tilt_vel = pantilt_maxspeed_ * axes_3;
+    }
 
     // // Settings Changes
     if (!speed_locked_)
@@ -165,6 +201,7 @@ void JoyMapping::mappingCallback(
 
     chassis_publisher_->publish(chassis_msg_out);
     pantilt_publisher_->publish(pantilt_msg_out);
+    last_joy_time_ = get_clock()->now();
 }
 
 void JoyMapping::authorityCallback(const std_msgs::msg::Bool::SharedPtr msg)
@@ -175,6 +212,30 @@ void JoyMapping::authorityCallback(const std_msgs::msg::Bool::SharedPtr msg)
     else
         mode_ = TeleopMode::Off;
 }
+
+void JoyMapping::timerCallback()
+{
+    if (mode_ == TeleopMode::Off)
+        return;
+
+    rclcpp::Time time_now = get_clock()->now();
+    double dt = rclcpp::Duration(time_now - last_joy_time_).nanoseconds() * 1e-9;
+    if (dt > timeout_)
+    {
+        geometry_msgs::msg::Twist chassis_msg_out;
+        theo_msgs::msg::TheoServoCmd pantilt_msg_out;
+
+        chassis_msg_out.linear.x = 0;
+        chassis_msg_out.linear.y = 0;
+        chassis_msg_out.angular.z = 0;
+        pantilt_msg_out.pan_vel = 0;
+        pantilt_msg_out.tilt_vel = 0;
+
+        chassis_publisher_->publish(chassis_msg_out);
+        pantilt_publisher_->publish(pantilt_msg_out);
+        last_joy_time_ = time_now;
+    }
+};
 
 int main(int argc, char *argv[])
 {

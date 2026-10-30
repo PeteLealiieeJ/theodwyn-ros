@@ -11,6 +11,7 @@
 #include <vector>
 #include <cstdint>
 #include <string>
+#include <cmath>
 
 namespace Theodwyn
 {
@@ -41,6 +42,8 @@ namespace Theodwyn
         rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr chassis_publisher_;
         /// Publisher of pan/tilt velocity commands.
         rclcpp::Publisher<theo_msgs::msg::TheoServoCmd>::SharedPtr pantilt_publisher_;
+        /// Timer driving timerCallback().
+        rclcpp::TimerBase::SharedPtr timer_;
 
         /**
          * @brief Converts a joystick message into chassis and pan/tilt commands and adjusts speed settings.
@@ -55,6 +58,9 @@ namespace Theodwyn
          */
         void authorityCallback(const std_msgs::msg::Bool::SharedPtr);
 
+        /// @brief Periodic step: checks heartbeat of Joystick.
+        void timerCallback();
+
         /// Maximum chassis linear speed [m/s].
         double chassis_max_linspeed_;
         /// Maximum chassis angular speed [rad/s].
@@ -65,10 +71,16 @@ namespace Theodwyn
         double settings_update_waitime_;
         /// If true, speed-setting changes are locked out.
         bool speed_locked_;
+        /// Joystick timeout in seconds
+        double timeout_;
         /// Time of the last speed-setting change.
         rclcpp::Time last_settings_update_;
         /// Current teleop mode.
         TeleopMode mode_;
+        /// Time of last joystick command
+        rclcpp::Time last_joy_time_;
+        // Stick axis configuration threshold
+        static constexpr double stick_conf_thresh_ = 0.99;
 
         /// Default for chassis_max_linspeed_.
         static constexpr double DEFAULT_chassis_max_linspeed_ = 1.0;
@@ -79,7 +91,9 @@ namespace Theodwyn
         /// Default for settings_update_waitime_.
         static constexpr double DEFAULT_settings_update_waitime_ = 0.5;
         /// Default for speed_locked_.
-        static constexpr double DEFAULT_speed_locked_ = true;
+        static constexpr bool DEFAULT_speed_locked_ = true;
+        /// Default for timeout_
+        static constexpr double DEFAULT_timeout_ = 0.25;
         /// Default joystick input topic.
         static constexpr std::string_view DEFAULT_joy_topic_ = "joy";
         /// Default authority topic shared with the autonomous controller.

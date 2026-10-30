@@ -21,6 +21,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(angles REQUIRED)
 find_package(Eigen3 REQUIRED) # NO VERSIONING ATM
+add_compile_options(-O3 -march=native) # for eigen optimizations
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
@@ -43,7 +44,18 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 
 # Create Cpp executable
 add_executable(pid_controller_node src/pid_controller.cpp)
-ament_target_dependencies( pid_controller_node rclcpp tf2 Eigen3 theo_msgs theo_srvs geometry_msgs theo_comm angles)
+# target_link_libraries(pid_controller_node PRIVATE theo_comm_lib)
+ament_target_dependencies( 
+  pid_controller_node 
+  rclcpp 
+  tf2 
+  Eigen3 
+  theo_msgs 
+  theo_srvs 
+  geometry_msgs 
+  theo_comm 
+  angles 
+)
 
 # Install Cpp executables
 install(TARGETS

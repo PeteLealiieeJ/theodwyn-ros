@@ -17,6 +17,7 @@ find_package(rclpy REQUIRED)
 find_package(theo_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED) # NO VERSIONING ATM
+add_compile_options(-O3 -march=native) # for eigen optimizations
 find_package(Boost REQUIRED) # NO VERSIONING ATM
 
 if(BUILD_TESTING)

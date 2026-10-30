@@ -1,6 +1,8 @@
 # theodwyn-ros
 Collection of ROS2 Middleware Packages for the *Theodwyn* Robots, Eomer and Eowyn unmanned ground vehicles (UGVs) 
 
+**Disclaimer**: To accommodate limited maintainer bandwidth, this repository utilizes _Claude Code_ to generate Doxygen comments within C++ headers and provide detailed descriptions of individual components for collaborators and contributors. _Claude Code_ has **NOT** been used to generate executable code, and all associated commits that _Claude Code_ has contributed to are co-authored for transparency. 
+
 ---
 ## Content
 
